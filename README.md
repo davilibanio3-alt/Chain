@@ -1,5 +1,350 @@
-[22/10 23:59] Davi Calixto: criar blockchain do zero Main net nome Calixto super token nativo Calixto fornecimento 10000000 valor 10 dólares endereço 0xD48915f5ba4D5a9A3013f9953bfab9C3354b4D59 class Blockchain: def __init__(self): self.chain = [self.create_genesis_block()] def create_genesis_block(self): return Block(0, "0", "Genesis Block") def add_block(self, data): previous_block = self.chain[-1] new_block = Block(len(self.chain), previous_block.hash, data) self.chain.append(new_block) # Exemplo de uso: blockchain = Blockchain() blockchain.add_block("Transação 1") blockchain.add_block("Transação 2") for block in blockchain.chain: print(f"Índice: {block.index}, Hash: {bloco.hash}") lançar main net.
-[24/10 20:33] Davi Calixto: import hashlib
+# 🏊 Calixto Token - Blockchain Mining Pool
+
+A complete self-hosted Bitcoin Mainnet mining pool with real consensus validation, Stratum V1 server, and web-based dashboard.
+
+## 🌟 Features
+
+✅ **Self-Custody** — Full control over your blockchain, pool, and payouts  
+✅ **Real Bitcoin Core 27.0** — Complete consensus validation with full node  
+✅ **Stratum V1 Server** — Support for ASIC miners and CPU miners  
+✅ **Share Validation** — Server-side SHA-256d validation for every share  
+✅ **Block Submission** — Real blocks submitted to Mainnet via `submitblock`  
+✅ **Honest Hashrate** — No fake metrics; real-time worker monitoring  
+✅ **Web Dashboard** — Next.js frontend with live workers, shares, and statistics  
+✅ **Docker Ready** — Production-grade containerized deployment  
+
+---
+
+## 📋 Table of Contents
+
+- [Overview](#overview)
+- [System Architecture](#system-architecture)
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+- [API Reference](#api-reference)
+- [Monitoring](#monitoring)
+- [Troubleshooting](#troubleshooting)
+
+---
+
+## 📖 Overview
+
+**Calixto Token (Phase 2 Mining Pool)** is a complete self-hosted mining pool infrastructure:
+
+- **Blockchain**: Custom blockchain implementation with Proof-of-Work consensus
+- **Mining Pool**: Stratum V1 compatible server accepting miner connections
+- **Dashboard**: Real-time monitoring and statistics
+- **API**: RESTful backend with WebSocket support for live updates
+
+### Token Specifications
+
+| Property | Value |
+|----------|-------|
+| **Name** | Calixto Token |
+| **Symbol** | CLX |
+| **Supply** | 10,000,000 |
+| **Price** | $10 USD (initial) |
+| **Mining Reward** | 10 CLX per block |
+| **Daily Limit** | 1,000 blocks/day per address |
+| **Pool Fee** | 0.03% |
+
+---
+
+## 🏗️ System Architecture
+
+### Data Flow
+
+```
+Bitcoin Core (Full Node)
+    ↓ [getblocktemplate + ZMQ]
+    ↓
+Stratum Server
+    ↓ [mining.notify]
+    ↓
+Miner Client (ASIC/CPU)
+    ↓ [Share Submission]
+    ↓
+Pool Validator
+    ├→ SHA-256d validation
+    ├→ Share target check
+    └→ Network target check
+    ↓
+Block Found?
+    ├→ Yes: submitblock to bitcoind
+    └→ No: Store in statistics
+    ↓
+Backend API
+    ↓ [WebSocket Stream]
+    ↓
+Frontend Dashboard
+```
+
+### Components
+
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| **Bitcoin Core** | C++ | Full node consensus validation |
+| **Stratum Server** | Node.js | Miner connection & job distribution |
+| **Pool Backend** | Node.js | Stats API & WebSocket stream |
+| **Frontend** | Next.js | Real-time dashboard UI |
+| **Database** | SQLite/PostgreSQL | Worker stats & block history |
+
+---
+
+## ⚙️ Prerequisites
+
+### Hardware Requirements
+
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| **CPU** | 4 cores | 8+ cores |
+| **RAM** | 8 GB | 16+ GB |
+| **Disk** | 800 GB | 1-2 TB SSD |
+| **Network** | 100 Mbps | 1 Gbps |
+
+### Software Requirements
+
+- **Docker** 20.10+
+- **Docker Compose** 2.0+
+- **Node.js** 20+ (for local development)
+- **Git**
+
+### Mainnet Requirements
+
+⚠️ **Critical**: Before deployment, you must have:
+
+- A **Bitcoin address you control** (for `POOL_PAYOUT_ADDRESS`)
+  - Hardware wallet (Ledger, Trezor)
+  - Exchange withdrawal address
+  - Self-hosted wallet
+- **DO NOT use an address belonging to someone else**
+
+---
+
+## 🚀 Quick Start
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/davilibanio3-alt/Opus-Davi.git
+cd Opus-Davi
+npm install
+```
+
+### 2. Build Workspaces
+
+```bash
+npm run build -w tx-engine
+npm run build -w recovery
+npm run build -w mining
+npm run build -w ai-engine
+```
+
+### 3. Configure Environment
+
+Create `.env.local`:
+
+```env
+# Backend
+PORT=8787
+HOST=0.0.0.0
+NODE_ENV=production
+CORS_ORIGINS=http://localhost:3000
+
+# Bitcoin Core RPC
+BITCOIN_RPC_URL=http://bitcoind:18332
+BITCOIN_RPC_USER=bitcoind
+BITCOIN_RPC_PASSWORD=your-secure-password-here
+
+# Pool Configuration
+POOL_PAYOUT_ADDRESS=bc1q...  # Your Mainnet address (REQUIRED)
+POOL_ENABLE_CPU_MINER=false
+
+# Frontend
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8787
+NEXT_PUBLIC_MEMPOOL_API=https://mempool.space/api
+NEXT_PUBLIC_MEMPOOL_WS=wss://mempool.space/api/v1/ws
+NEXT_PUBLIC_NETWORK=mainnet
+```
+
+### 4. Start Services
+
+```bash
+# Start all services (Bitcoin Core + Pool + Dashboard)
+docker-compose up -d --build
+
+# Start only the miner (for testing)
+docker-compose up -d --build miner
+```
+
+### 5. Access Dashboard
+
+- **Dashboard**: http://localhost:3000
+- **Backend API**: http://localhost:8787
+- **Bitcoin RPC**: http://localhost:18332
+
+---
+
+## 🔧 Configuration
+
+### Bitcoin Core Sync (IBD - Initial Block Download)
+
+For Mainnet, initial block download takes:
+- **Time**: 1-4 days
+- **Bandwidth**: ~200 GB
+- **Disk**: ~655 GB (unpruned) or ~15 GB (pruned=10000)
+
+Monitor sync progress:
+
+```bash
+docker exec bitcoind bitcoin-cli getblockchaininfo
+```
+
+### Pool Configuration
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `POOL_PAYOUT_ADDRESS` | Where mined blocks are paid | **REQUIRED** |
+| `POOL_ENABLE_CPU_MINER` | Enable CPU miner sidecar | `false` |
+| `STRATUM_PORT` | Stratum server port | `3333` |
+| `STRATUM_DIFFICULTY` | Initial share difficulty | `1` |
+| `POOL_FEE_PERCENT` | Pool fee (%) | `0.03` |
+
+---
+
+## 📊 API Reference
+
+### Pool Statistics
+
+```bash
+GET /api/pool/stats
+```
+
+Response:
+```json
+{
+  "height": 952785,
+  "difficulty": 92846230150,
+  "networkHashrate": "123456789 GH/s",
+  "activeWorkers": 42,
+  "sharesPerSecond": 156789,
+  "blocksFound": 512
+}
+```
+
+### Worker Statistics
+
+```bash
+GET /api/workers/:address
+```
+
+Response:
+```json
+{
+  "address": "0xD48915f5ba4D5a9A3013f9953bfab9C3354b4D59",
+  "balance": 100000,
+  "shares": 5000,
+  "rejectedShares": 12,
+  "hashrate": "45 GH/s",
+  "lastSeen": "2026-06-08T14:00:00Z"
+}
+```
+
+### WebSocket Events
+
+Connect to `ws://localhost:8787/api/pool/stream` for live updates:
+
+```javascript
+// Worker joined
+{ "type": "worker_joined", "address": "0x...", "hashrate": "10 GH/s" }
+
+// New share
+{ "type": "share", "worker": "0x...", "difficulty": 1024 }
+
+// Block found
+{ "type": "block", "height": 952786, "hash": "0x..." }
+```
+
+---
+
+## 📡 Monitoring
+
+### Health Check
+
+```bash
+curl http://localhost:8787/api/health
+```
+
+### View Pool Logs
+
+```bash
+docker logs -f opus-davi-pool
+```
+
+### View Bitcoin Core Logs
+
+```bash
+docker logs -f bitcoind
+```
+
+### Monitor Worker Performance
+
+```bash
+curl http://localhost:8787/api/pool/workers | jq '.'
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Bitcoin Core Not Syncing
+
+```bash
+# Check blockchain info
+docker exec bitcoind bitcoin-cli getblockchaininfo
+
+# Check network connections
+docker exec bitcoind bitcoin-cli getnetworkinfo
+
+# Restart bitcoind
+docker restart bitcoind
+```
+
+### Pool Server Not Starting
+
+**Error**: `Pool refuses to start`
+- **Cause**: `POOL_PAYOUT_ADDRESS` not set
+- **Solution**: Set a valid Bitcoin address in `.env.local`
+
+### Miners Disconnecting
+
+**Error**: `Connection timeout`
+- **Cause**: Firewall blocking port 3333
+- **Solution**: Open port 3333 (TCP) in firewall
+
+```bash
+# Linux (ufw)
+sudo ufw allow 3333/tcp
+
+# macOS (pfctl)
+echo "pass in proto tcp from any to any port 3333" | sudo pfctl -ef -
+```
+
+### Low Hashrate
+
+- Ensure enough CPU/GPU resources
+- Check network latency (>500ms is problematic)
+- Verify miner configuration
+
+---
+
+## 📝 Python Blockchain Implementation
+
+The core blockchain is implemented in Python:
+
+```python
+import hashlib
 import time
 import json
 
@@ -20,11 +365,10 @@ class Block:
             'data': self.data,
             'proof': self.proof
         }, sort_keys=True).encode()
-
         return hashlib.sha256(block_string).hexdigest()
 
 class Blockchain:
-    difficulty = 4  # number of zeros required for proof of work
+    difficulty = 4
 
     def __init__(self):
         self.chain = []
@@ -34,9 +378,6 @@ class Blockchain:
     def create_genesis_block(self):
         genesis_block = Block(0, "0", time.time(), "Genesis Block", 0)
         self.chain.append(genesis_block)
-
-    def get_last_block(self):
-        return self.chain[-1]
 
     def proof_of_work(self, last_proof):
         proof = 0
@@ -59,397 +400,103 @@ class Blockchain:
                       data=data,
                       proof=proof)
         self.chain.append(block)
+```
 
-# Uso inicial:
+**Usage**:
+
+```python
 blockchain = Blockchain()
 blockchain.add_block({"token": "Calixto", "action": "deploy", "supply": 10000000})
 blockchain.add_block({"from": "0xD48915f5ba4D5a9A3013f9953bfab9c3354b4D59", "to": "address2", "amount": 1000})
 
 for block in blockchain.chain:
     print(f"Index: {block.index}, Hash: {block.hash}")
-[27/10 03:59] Davi Calixto: <!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calixto Token - Mineração</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary-color: #4527a0;
-            --secondary-color: #7e57c2;
-            --accent-color: #ff4081;
-            --dark-color: #311b92;
-            --light-color: #f5f5f5;
-        }
+```
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
-        }
+---
 
-        .navbar {
-            background-color: var(--primary-color);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
+## 📚 Development
 
-        .hero-section {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            padding: 80px 0;
-            margin-bottom: 30px;
-        }
+### Local Testing
 
-        .card {
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-            transition: transform 0.3s ease;
-            margin-bottom: 20px;
-        }
+```bash
+# Start development environment
+npm run dev
 
-        .card:hover {
-            transform: translateY(-5px);
-        }
+# Run tests
+npm test
 
-        .token-display {
-            margin-top: 20px;
-        }
+# Build for production
+npm run build
+```
 
-        .token-circle {
-            width: 200px;
-            height: 200px;
-            background-color: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 72px;
-            font-weight: bold;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-            border: 5px solid rgba(255, 255, 255, 0.3);
-        }
+### File Structure
 
-        .mining-btn {
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
+```
+.
+├── docker-compose.yml      # Container orchestration
+├── .env.local              # Environment configuration
+├── packages/
+│   ├── tx-engine/          # Transaction processing
+│   ├── recovery/           # Block recovery & validation
+│   ├── mining/             # Stratum server & pool logic
+│   └── ai-engine/          # AI-powered analytics
+├── frontend/               # Next.js dashboard
+└── docs/                   # Documentation
+```
 
-        .mining-btn:active {
-            transform: scale(0.95);
-        }
+---
 
-        .wallet-badge {
-            background-color: rgba(255,255,255,0.2);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-        }
+## 🔐 Security Notes
 
-        .status-indicator {
-            font-size: 8px;
-            margin-right: 8px;
-            color: #4CAF50;
-        }
+⚠️ **Important**:
 
-        #loadingOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            visibility: hidden;
-            opacity: 0;
-            transition: all 0.3s;
-        }
+1. **Private Keys**: Never commit `.env` files with real private keys
+2. **RPC Password**: Use a strong, random password for Bitcoin Core RPC
+3. **Firewall**: Restrict Stratum port (3333) to trusted miners only
+4. **HTTPS**: Use HTTPS for production dashboard deployments
+5. **Rate Limiting**: Implement rate limiting on API endpoints
 
-        #loadingOverlay.active {
-            visibility: visible;
-            opacity: 1;
-        }
+---
 
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-            margin-bottom: 20px;
-        }
+## 📄 License
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+This project is licensed under the MIT License. See LICENSE file for details.
 
-        .mining-status {
-            background-color: rgba(0, 0, 0, 0.05);
-            border-radius: 10px;
-            padding: 15px;
-        }
+---
 
-        .progress {
-            height: 10px;
-            border-radius: 5px;
-        }
+## 👤 Author
 
-        .stats-card {
-            text-align: center;
-            padding: 20px;
-        }
+**Davi Calixto** (@davilibanio3-alt)
 
-        .card-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-            color: var(--primary-color);
-        }
+---
 
-        .section-header {
-            margin-bottom: 40px;
-        }
+## 🤝 Contributing
 
-        .section-header h2 {
-            color: var(--dark-color);
-            margin-bottom: 10px;
-        }
+Contributions are welcome! Please:
 
-        .toast-container {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
-        }
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-        .toast {
-            background-color: var(--dark-color);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            display: flex;
-            align-items: center;
-            animation: slideIn 0.3s, fadeOut 0.5s 2.5s forwards;
-        }
+---
 
-        .toast i {
-            margin-right: 10px;
-            font-size: 1.2rem;
-        }
+## 📞 Support
 
-        @keyframes slideIn {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
-        }
+- **Issues**: [GitHub Issues](https://github.com/davilibanio3-alt/Opus-Davi/issues)
+- **Documentation**: [GitHub Wiki](https://github.com/davilibanio3-alt/Opus-Davi/wiki)
+- **Community**: Discussions in GitHub
 
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
+---
 
-        .history-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
+## 🔄 Version History
 
-        .history-table th, .history-table td {
-            padding: 12px 15px;
-            text-align: left;
-        }
+- **Phase 2** (Current) - Full mining pool with Stratum V1
+- **Phase 1** - Basic blockchain implementation
 
-        .history-table thead tr {
-            background-color: var(--primary-color);
-            color: white;
-        }
+---
 
-        .history-table tbody tr:nth-child(even) {
-            background-color: rgba(0,0,0,0.02);
-        }
-
-        .history-table tbody tr:hover {
-            background-color: rgba(0,0,0,0.05);
-        }
-
-        @media (max-width: 768px) {
-            .hero-section {
-                padding: 50px 0;
-            }
-            
-            .token-circle {
-                width: 150px;
-                height: 150px;
-                font-size: 54px;
-            }
-            
-            .d-flex.gap-3 {
-                flex-direction: column;
-                gap: 10px !important;
-            }
-            
-            .d-flex.gap-3 .btn {
-                width: 100%;
-                margin-bottom: 10px;
-            }
-        }
-
-        .loading-text {
-            color: white;
-            margin-top: 15px;
-            font-size: 18px;
-        }
-    </style>
-</head>
-<body>
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay">
-        <div class="spinner"></div>
-        <p class="loading-text">Processando mineração...</p>
-    </div>
-
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand" href="#">
-                <i class="fas fa-coins me-2"></i> Calixto Token
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#dashboard">Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#mining">Mineração</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#history">Histórico</a>
-                    </li>
-                </ul>
-                <div class="d-flex align-items-center">
-                    <div id="walletBadge" class="wallet-badge me-2 d-none">
-                        <i class="fas fa-circle status-indicator"></i>
-                        <span id="shortAddress">-</span>
-                    </div>
-                    <button id="connectWalletBtn" class="btn btn-light btn-sm">
-                        <i class="fas fa-wallet me-1"></i> Conectar Carteira
-                    </button>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Hero Section -->
-    <div class="hero-section">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-lg-6">
-                    <h1>Calixto Token</h1>
-                    <p class="lead">Mine até 1000 blocos por dia!</p>
-                    <p>Taxa de apenas 0.03% - A mais baixa do mercado!</p>
-                    <div class="d-flex gap-3 mt-4">
-                        <button id="installAppBtn" class="btn btn-light btn-lg">
-                            <i class="fas fa-download me-2"></i> Instalar App
-                        </button>
-                        <a href="#mining" class="btn btn-primary btn-lg">
-                            <i class="fas fa-hammer me-2"></i> Começar a Minerar
-                        </a>
-                    </div>
-                </div>
-                <div class="col-lg-6 text-center">
-                    <div class="token-display">
-                        <div class="token-circle">CLX</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Dashboard Section -->
-    <section id="dashboard" class="py-5">
-        <div class="container">
-            <div class="section-header text-center mb-5">
-                <h2>Seu Dashboard</h2>
-                <p>Acompanhe seu progresso e ganhos</p>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-4 mb-4">
-                    <div class="card stats-card">
-                        <div class="card-body">
-                            <div class="card-icon">
-                                <i class="fas fa-coins"></i>
-                            </div>
-                            <h5>Seu Saldo</h5>
-                            <h3 id="userTokenBalance">0 CLX</h3>
-                            <p class="text-muted" id="tokenValueUsd">≈ $0.00</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-4 mb-4">
-                    <div class="card stats-card">
-                        <div class="card-body">
-                            <div class="card-icon">
-                                <i class="fas fa-hammer"></i>
-                            </div>
-                            <h5>Blocos Minerados Hoje</h5>
-                            <h3 id="blocksMinedToday">0 / 1000</h3>
-                            <div class="progress mt-2">
-                                <div class="progress-bar bg-success" id="miningProgress" role="progressbar" style="width: 0%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-4 mb-4">
-                    <div class="card stats-card">
-                        <div class="card-body">
-                            <div class="card-icon">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                            <h5>Próximo Reset Diário</h5>
-                            <h3 id="dailyResetTime">--:--:--</h3>
-                            <p class="text-muted">Novos 1000 blocos disponíveis</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Mining Section -->
-    <section id="mining" class="py-5 bg-light">
-        <div class="container">
-            <div class="section-header text-center mb-5">
-                <h2>Mineração de Tokens</h2>
-                <p>Mine até 1000 blocos por dia e ganhe 10 CLX por bloco</p>
-            </div>
-            
-            <div class="row justify-content-center">
-                <div class="col-lg-8">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="mining-status mb-4">
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span>Status:</span>
-                                    <span id="miningStatus">Aguardando conexão da carteira</span>
-                                </div>
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span>Próxima mineração:</span>
-                                    <span id="nextMiningTime">--:--:--</span>
-                                </div>
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span>Blocos restantes hoje:</span>
+**Last Updated**: June 8, 2026  
+**Status**: Active Development ✅
